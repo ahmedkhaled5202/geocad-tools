@@ -1,0 +1,54 @@
+<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Estimate GPX track distance by segment | GeoCAD Tools</title><meta name="description" content="Calculate approximate GPS track distance without joining separate segments.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/en/gpx-track-length.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/gpx-track-length.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/gpx-track-length.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/en/gpx-track-length.html">
+<meta property="og:title" content="Estimate GPX track distance by segment">
+<meta property="og:description" content="Calculate approximate GPS track distance without joining separate segments.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">Home</a><a href="about.html">About</a><a href="privacy.html">Privacy</a><a href="contact.html">Contact</a><a class="langlink" href="../ar/gpx-track-length.html" lang="ar">العربية</a></div></nav></header><main class="container"><article class="paper"><span class="pill">GPS</span><h1>Estimate GPX track distance by segment</h1><p class="lead">Calculate approximate GPS track distance without joining separate segments.</p><p>A GPX recording may include several tracks and gaps in the recorded path. This tool calculates spherical Haversine distances between consecutive track points within each trkseg and deliberately does not bridge segment boundaries.</p><h2>How to use</h2><ol><li>Export a GPX file with trk/trkseg/trkpt elements.</li><li>Run python gpx_distance.py walk.gpx.</li><li>Check track-segment count, point count and approximate km.</li><li>Compare with a GPS-noise-filtering workflow if accuracy matters.</li><li>Do not use this approximation for cadastral or contractual survey distances.</li></ol><h2>Complete source code</h2><div class="tools"><button data-copy data-done="Copied" data-manual="Selected: copy manually">Copy code</button><a class="button" href="../downloads/gpx_distance.py" download>Download code</a></div><pre><code id="code">#!/usr/bin/env python3
+&quot;&quot;&quot;Approximate GPX track length per segment using spherical haversine.&quot;&quot;&quot;
+import argparse
+import math
+import xml.etree.ElementTree as ET
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument(&#x27;file&#x27;, help=&#x27;GPX track file&#x27;)
+args = p.parse_args()
+root = ET.parse(args.file).getroot()
+local = lambda tag: tag.rsplit(&#x27;}&#x27;, 1)[-1]
+
+def distance(a, b):
+    lat1, lon1 = map(math.radians, a)
+    lat2, lon2 = map(math.radians, b)
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    h = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+    return 2*6371008.8*math.asin(min(1.0, math.sqrt(h)))
+
+segments, total_points, total_m = 0, 0, 0.0
+for segment in root.iter():
+    if local(segment.tag) != &#x27;trkseg&#x27;:
+        continue
+    segments += 1
+    previous = None
+    for pt in segment:
+        if local(pt.tag) != &#x27;trkpt&#x27;:
+            continue
+        try:
+            lat = float(pt.attrib[&#x27;lat&#x27;]); lon = float(pt.attrib[&#x27;lon&#x27;])
+            if not (math.isfinite(lat) and math.isfinite(lon) and -90 &lt;= lat &lt;= 90 and -180 &lt;= lon &lt;= 180):
+                raise ValueError(&#x27;Invalid coordinates&#x27;)
+        except (KeyError, ValueError) as e:
+            print(&#x27;Skipped invalid trackpoint:&#x27;, e)
+            previous = None
+            continue
+        here = lat, lon
+        total_points += 1
+        if previous is not None:
+            total_m += distance(previous, here)
+        previous = here
+print(&#x27;Track segments:&#x27;, segments)
+print(&#x27;Valid trackpoints:&#x27;, total_points)
+print(f&#x27;Approximate track length: {total_m/1000:.3f} km&#x27;)
+print(&#x27;Route points and waypoints excluded. Elevation, drift and breaks ignored.&#x27;)
+</code></pre><h2>Illustrative example</h2><p>Two points about 0.001 degrees apart at the equator give roughly 0.111 km.</p><h2>Limitations and verification</h2><p class="notice">Uses a mean-radius sphere, not a high-precision ellipsoidal geodesic. Ignores elevation, sampling noise, waypoints and route points. Gaps between segments are excluded, but jumps within a segment still affect the distance.</p><p><a href="https://www.topografix.com/gpx/1/1/" rel="noopener noreferrer" target="_blank">Reference specification or documentation</a></p><p class="muted">Open-source example: always test with a copy before real-world use.</p></article><div class="more"><a href="index.html">← All tools</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · Independent guides and tools. Not affiliated with Autodesk or QGIS. <a href="privacy.html">Privacy</a> <a href="contact.html">Contact</a></div></footer></body></html>

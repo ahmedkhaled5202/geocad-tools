@@ -1,0 +1,45 @@
+<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inventory GeoJSON fields and null coverage | GeoCAD Tools</title><meta name="description" content="See property names, field presence and non-null coverage across features.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/en/geojson-field-inventory.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/geojson-field-inventory.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/geojson-field-inventory.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/en/geojson-field-inventory.html">
+<meta property="og:title" content="Inventory GeoJSON fields and null coverage">
+<meta property="og:description" content="See property names, field presence and non-null coverage across features.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">Home</a><a href="about.html">About</a><a href="privacy.html">Privacy</a><a href="contact.html">Contact</a><a class="langlink" href="../ar/geojson-field-inventory.html" lang="ar">العربية</a></div></nav></header><main class="container"><article class="paper"><span class="pill">GeoJSON</span><h1>Inventory GeoJSON fields and null coverage</h1><p class="lead">See property names, field presence and non-null coverage across features.</p><p>Two GeoJSON layers can carry similar geometries but very different attribute schemas. This small report lists property keys, how many features contain each key and how often a value is not null. Use it before database imports and handoffs.</p><h2>How to use</h2><ol><li>Prepare a GeoJSON FeatureCollection.</li><li>Run python geojson_field_inventory.py parcels.geojson.</li><li>Read the Field, present and non-null columns.</li><li>Resolve missing optional fields before designing database constraints.</li><li>Verify field meanings separately; this script never edits data.</li></ol><h2>Complete source code</h2><div class="tools"><button data-copy data-done="Copied" data-manual="Selected: copy manually">Copy code</button><a class="button" href="../downloads/geojson_field_inventory.py" download>Download code</a></div><pre><code id="code">#!/usr/bin/env python3
+&quot;&quot;&quot;Summarize GeoJSON feature attribute keys and null coverage.&quot;&quot;&quot;
+import argparse
+import json
+from collections import Counter
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument(&#x27;file&#x27;, help=&#x27;GeoJSON FeatureCollection&#x27;)
+args = p.parse_args()
+with open(args.file, encoding=&#x27;utf-8-sig&#x27;) as f:
+    data = json.load(f)
+if not isinstance(data, dict) or data.get(&#x27;type&#x27;) != &#x27;FeatureCollection&#x27;:
+    p.error(&#x27;Expected a FeatureCollection object&#x27;)
+features = data.get(&#x27;features&#x27;)
+if not isinstance(features, list):
+    p.error(&#x27;Expected features array&#x27;)
+seen = Counter()
+not_null = Counter()
+for i, feat in enumerate(features, start=1):
+    if not isinstance(feat, dict) or feat.get(&#x27;type&#x27;) != &#x27;Feature&#x27;:
+        print(f&#x27;Warning: entry {i} is not a Feature&#x27;)
+        continue
+    props = feat.get(&#x27;properties&#x27;)
+    if props is None:
+        props = {}
+    if not isinstance(props, dict):
+        print(f&#x27;Warning: feature {i} has non-object properties&#x27;)
+        continue
+    for name, value in props.items():
+        seen[name] += 1
+        not_null[name] += value is not None
+print(&#x27;Feature entries:&#x27;, len(features))
+print(&#x27;Field | present | non-null&#x27;)
+for name in sorted(seen, key=str.casefold):
+    print(f&#x27;{name} | {seen[name]} | {not_null[name]}&#x27;)
+print(&#x27;No input files were changed.&#x27;)
+</code></pre><h2>Illustrative example</h2><p>For ten features with parcel_id present ten times and two null values, the report shows present=10 and non-null=8.</p><h2>Limitations and verification</h2><p class="notice">Does not enforce data types or distinguish empty strings from valid non-null values. Field names are case-sensitive. Only supports FeatureCollection; large JSON files are loaded into memory.</p><p><a href="https://www.rfc-editor.org/rfc/rfc7946" rel="noopener noreferrer" target="_blank">Reference specification or documentation</a></p><p class="muted">Open-source example: always test with a copy before real-world use.</p></article><div class="more"><a href="index.html">← All tools</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · Independent guides and tools. Not affiliated with Autodesk or QGIS. <a href="privacy.html">Privacy</a> <a href="contact.html">Contact</a></div></footer></body></html>

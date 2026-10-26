@@ -1,0 +1,22 @@
+<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Audit QGIS layer coordinate systems | GeoCAD Tools</title><meta name="description" content="List layer names, CRS identifiers and layer validity in a read-only report.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/en/qgis-layer-crs.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/qgis-layer-crs.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/qgis-layer-crs.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/en/qgis-layer-crs.html">
+<meta property="og:title" content="Audit QGIS layer coordinate systems">
+<meta property="og:description" content="List layer names, CRS identifiers and layer validity in a read-only report.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">Home</a><a href="about.html">About</a><a href="privacy.html">Privacy</a><a href="contact.html">Contact</a><a class="langlink" href="../ar/qgis-layer-crs.html" lang="ar">العربية</a></div></nav></header><main class="container"><article class="paper"><span class="pill">QGIS</span><h1>Audit QGIS layer coordinate systems</h1><p class="lead">List layer names, CRS identifiers and layer validity in a read-only report.</p><p>Before combining data from different sources, inspect the coordinate systems assigned to your layers. This script reads registered project layers and prints each name, CRS identifier and validity status without editing or reprojecting data.</p><h2>How to use</h2><ol><li>Open your project in QGIS 3.</li><li>Open Python Console from the Plugins menu, then open its script editor.</li><li>Open layer_crs.py in the editor or paste the complete code.</li><li>Run the script and read the console output. It requires QGIS Python, not a normal Python interpreter.</li></ol><h2>Complete source code</h2><div class="tools"><button data-copy data-done="Copied" data-manual="Selected: copy manually">Copy code</button><a class="button" href="../downloads/layer_crs.py" download>Download code</a></div><pre><code id="code">from qgis.core import QgsProject
+
+layers = list(QgsProject.instance().mapLayers().values())
+if not layers:
+    print(&quot;No layers loaded.&quot;)
+for layer in sorted(layers, key=lambda item: item.name().casefold()):
+    crs = layer.crs()
+    identifier = crs.authid() or crs.description() or &quot;Unknown/custom CRS&quot;
+    if not crs.isValid():
+        identifier = &quot;Invalid or missing CRS&quot;
+    status = &quot;valid&quot; if layer.isValid() else &quot;invalid&quot;
+    print(f&quot;{layer.name()} | {identifier} | {status}&quot;)
+print(f&quot;Total registered layers: {len(layers)}&quot;)
+</code></pre><h2>Illustrative example</h2><p>Illustrative output: Roads | EPSG:32636 | valid. This is not a recommendation to use that CRS for your data.</p><h2>Limitations and verification</h2><p class="notice">Reports the assigned CRS; it cannot prove it was assigned correctly. Mixed coordinate systems are not inherently an error. Custom systems may use descriptions instead of EPSG identifiers. Hidden layers are included. Not run inside QGIS: compare with sample layer properties first.</p><p><a href="https://doc.qgis.org/3.44/en/docs/pyqgis_developer_cookbook/loadlayer.html" rel="noopener noreferrer" target="_blank">Reference specification or documentation</a></p><p class="muted">Open-source example: always test with a copy before real-world use.</p></article><div class="more"><a href="index.html">← All tools</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · Independent guides and tools. Not affiliated with Autodesk or QGIS. <a href="privacy.html">Privacy</a> <a href="contact.html">Contact</a></div></footer></body></html>

@@ -1,0 +1,53 @@
+<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Audit CSV coordinates before GIS import | GeoCAD Tools</title><meta name="description" content="Find missing X/Y values, duplicate pairs and numeric extent without editing your CSV.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/en/csv-coordinate-audit.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/csv-coordinate-audit.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/csv-coordinate-audit.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/en/csv-coordinate-audit.html">
+<meta property="og:title" content="Audit CSV coordinates before GIS import">
+<meta property="og:description" content="Find missing X/Y values, duplicate pairs and numeric extent without editing your CSV.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">Home</a><a href="about.html">About</a><a href="privacy.html">Privacy</a><a href="contact.html">Contact</a><a class="langlink" href="../ar/csv-coordinate-audit.html" lang="ar">العربية</a></div></nav></header><main class="container"><article class="paper"><span class="pill">Surveying</span><h1>Audit CSV coordinates before GIS import</h1><p class="lead">Find missing X/Y values, duplicate pairs and numeric extent without editing your CSV.</p><p>Survey point tables may contain incomplete rows, nonnumeric fields or repeated positions. This read-only checker scans chosen X/Y columns and prints affected row numbers. Review the output before importing data into a GIS or CAD workflow.</p><h2>How to use</h2><ol><li>Prepare a UTF-8 CSV file with a header row such as X,Y,Name.</li><li>Download the script and use Python 3.9 or newer.</li><li>Run python csv_coordinate_audit.py points.csv; choose --x Easting --y Northing for alternate column names.</li><li>Inspect reported rows and the X/Y extent, then edit a copy of your source table.</li><li>Independently verify coordinate reference system and units.</li></ol><h2>Complete source code</h2><div class="tools"><button data-copy data-done="Copied" data-manual="Selected: copy manually">Copy code</button><a class="button" href="../downloads/csv_coordinate_audit.py" download>Download code</a></div><pre><code id="code">#!/usr/bin/env python3
+&quot;&quot;&quot;Check numeric X/Y columns in a UTF-8 CSV. Never modifies the input file.&quot;&quot;&quot;
+import argparse
+import csv
+import math
+from collections import Counter
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument(&#x27;file&#x27;, help=&#x27;UTF-8 CSV file&#x27;)
+p.add_argument(&#x27;--x&#x27;, default=&#x27;X&#x27;, help=&#x27;X column name (default: X)&#x27;)
+p.add_argument(&#x27;--y&#x27;, default=&#x27;Y&#x27;, help=&#x27;Y column name (default: Y)&#x27;)
+args = p.parse_args()
+
+seen = set()
+issues = Counter()
+xs, ys = [], []
+with open(args.file, newline=&#x27;&#x27;, encoding=&#x27;utf-8-sig&#x27;) as f:
+    reader = csv.DictReader(f)
+    if not reader.fieldnames or args.x not in reader.fieldnames or args.y not in reader.fieldnames:
+        p.error(f&#x27;Expected columns {args.x!r} and {args.y!r}; found {reader.fieldnames!r}&#x27;)
+    total = 0
+    for line, row in enumerate(reader, start=2):
+        total += 1
+        try:
+            x = float(row[args.x])
+            y = float(row[args.y])
+            if not math.isfinite(x) or not math.isfinite(y):
+                raise ValueError(&#x27;non-finite&#x27;)
+        except (ValueError, TypeError, OverflowError):
+            issues[&#x27;invalid_or_missing_xy&#x27;] += 1
+            print(f&#x27;Row {line}: invalid or missing X/Y&#x27;)
+            continue
+        pair = (x, y)
+        if pair in seen:
+            issues[&#x27;duplicate_xy&#x27;] += 1
+            print(f&#x27;Row {line}: repeated coordinate pair&#x27;)
+        seen.add(pair)
+        xs.append(x); ys.append(y)
+print(f&#x27;Total rows: {total} | Numeric XY: {len(xs)}&#x27;)
+print(&#x27;Issues:&#x27;, dict(issues))
+if xs:
+    print(f&#x27;Extent X: {min(xs):g} .. {max(xs):g}&#x27;)
+    print(f&#x27;Extent Y: {min(ys):g} .. {max(ys):g}&#x27;)
+print(&#x27;Coordinate reference system and units: NOT checked&#x27;)
+</code></pre><h2>Illustrative example</h2><p>For four rows including one missing X and one repeated XY pair, the report identifies both affected rows and prints row totals.</p><h2>Limitations and verification</h2><p class="notice">Does not identify the CRS, geographic correctness or near-duplicates. Exact duplicate positions can be legitimate. Decimal values must use a dot in a normal CSV numeric cell. This is a quick check, not a survey sign-off.</p><p><a href="https://docs.python.org/3/library/csv.html" rel="noopener noreferrer" target="_blank">Reference specification or documentation</a></p><p class="muted">Open-source example: always test with a copy before real-world use.</p></article><div class="more"><a href="index.html">← All tools</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · Independent guides and tools. Not affiliated with Autodesk or QGIS. <a href="privacy.html">Privacy</a> <a href="contact.html">Contact</a></div></footer></body></html>

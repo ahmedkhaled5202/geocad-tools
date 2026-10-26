@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ahmedkhaled5202.github.io/geocad-tools/sitemap.xml

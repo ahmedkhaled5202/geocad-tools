@@ -1,0 +1,22 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>راجع أنظمة إحداثيات طبقات QGIS | GeoCAD Tools</title><meta name="description" content="تقرير سريع بأسماء الطبقات ونظام الإحداثيات وحالة صلاحية كل طبقة.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/qgis-layer-crs.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/qgis-layer-crs.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/qgis-layer-crs.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/ar/qgis-layer-crs.html">
+<meta property="og:title" content="راجع أنظمة إحداثيات طبقات QGIS">
+<meta property="og:description" content="تقرير سريع بأسماء الطبقات ونظام الإحداثيات وحالة صلاحية كل طبقة.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">الرئيسية</a><a href="about.html">عن الموقع</a><a href="privacy.html">الخصوصية</a><a href="contact.html">تواصل</a><a class="langlink" href="../en/qgis-layer-crs.html" lang="en">English</a></div></nav></header><main class="container"><article class="paper"><span class="pill">QGIS</span><h1>راجع أنظمة إحداثيات طبقات QGIS</h1><p class="lead">تقرير سريع بأسماء الطبقات ونظام الإحداثيات وحالة صلاحية كل طبقة.</p><p>قبل دمج بيانات من مصادر مختلفة، راجع أنظمة الإحداثيات المعرّفة للطبقات. هذا السكريبت يقرأ الطبقات المسجلة بالمشروع ويطبع الاسم ومعرّف CRS وحالة صلاحية الطبقة دون تعديلها أو إعادة إسقاطها.</p><h2>طريقة الاستخدام</h2><ol><li>افتح مشروعك داخل QGIS 3.</li><li>افتح Python Console من قائمة Plugins ثم افتح محرر السكريبتات.</li><li>افتح ملف layer_crs.py في المحرر أو الصق الكود كاملًا.</li><li>شغّل الكود واقرأ التقرير في وحدة التحكم. الكود يحتاج بيئة QGIS، وليس Python العادي.</li></ol><h2>الكود الكامل</h2><div class="tools"><button data-copy data-done="تم النسخ" data-manual="حدد الكود وانسخه يدويًا">نسخ الكود</button><a class="button" href="../downloads/layer_crs.py" download>تنزيل الكود</a></div><pre><code id="code">from qgis.core import QgsProject
+
+layers = list(QgsProject.instance().mapLayers().values())
+if not layers:
+    print(&quot;No layers loaded.&quot;)
+for layer in sorted(layers, key=lambda item: item.name().casefold()):
+    crs = layer.crs()
+    identifier = crs.authid() or crs.description() or &quot;Unknown/custom CRS&quot;
+    if not crs.isValid():
+        identifier = &quot;Invalid or missing CRS&quot;
+    status = &quot;valid&quot; if layer.isValid() else &quot;invalid&quot;
+    print(f&quot;{layer.name()} | {identifier} | {status}&quot;)
+print(f&quot;Total registered layers: {len(layers)}&quot;)
+</code></pre><h2>مثال توضيحي</h2><p>قد يظهر سطر مثل: Roads | EPSG:32636 | valid. هذه نتيجة توضيحية فقط وليست توصية بنظام إحداثيات معين.</p><h2>الحدود والتحقق</h2><p class="notice">يعرض CRS المعرّف ولا يثبت أن البيانات أُسند لها النظام الصحيح. اختلاف الأنظمة ليس خطأ في حد ذاته. الأنظمة المخصصة قد تظهر بوصفها بدل EPSG. الطبقات غير المرئية أيضًا مشمولة. لم يُشغّل الكود داخل QGIS؛ قارِن التقرير بخصائص طبقات تجريبية أولًا.</p><p><a href="https://doc.qgis.org/3.44/en/docs/pyqgis_developer_cookbook/loadlayer.html" rel="noopener noreferrer" target="_blank">التوثيق أو المعيار المرجعي</a></p><p class="muted">الكود مفتوح المصدر، ويجب تجربة نسخة من الملفات قبل استخدامه في مشروع حقيقي.</p></article><div class="more"><a href="index.html">← جميع الأدوات</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · محتوى وأدوات مستقلة. غير تابع لـAutodesk أو QGIS. <a href="privacy.html">الخصوصية</a> <a href="contact.html">تواصل</a></div></footer></body></html>

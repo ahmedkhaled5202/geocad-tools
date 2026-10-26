@@ -1,0 +1,42 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تلخيص محتويات KML قبل المشاركة | GeoCAD Tools</title><meta name="description" content="عدّ المعالم الجغرافية ونقاط الإحداثيات واكشف القيم خارج المدى المعتاد.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/kml-summary.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/kml-summary.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/kml-summary.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/ar/kml-summary.html">
+<meta property="og:title" content="تلخيص محتويات KML قبل المشاركة">
+<meta property="og:description" content="عدّ المعالم الجغرافية ونقاط الإحداثيات واكشف القيم خارج المدى المعتاد.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">الرئيسية</a><a href="about.html">عن الموقع</a><a href="privacy.html">الخصوصية</a><a href="contact.html">تواصل</a><a class="langlink" href="../en/kml-summary.html" lang="en">English</a></div></nav></header><main class="container"><article class="paper"><span class="pill">KML</span><h1>تلخيص محتويات KML قبل المشاركة</h1><p class="lead">عدّ المعالم الجغرافية ونقاط الإحداثيات واكشف القيم خارج المدى المعتاد.</p><p>قد يحتوي ملف KML على أسماء أماكن ومسارات ومضلعات. بدلًا من فتحه يدويًا لمعرفة حجمه ومجاله، يفحص هذا السكريبت ملف KML عاديًا ويحسب عناصر Placemark ويقرأ الإحداثيات المباشرة الموجودة داخله دون الاتصال بأي خدمات خارجية.</p><h2>طريقة الاستخدام</h2><ol><li>صدّر البيانات في ملف .kml عادي (لا تستخدم ملف .kmz المضغوط).</li><li>شغّل python kml_summary.py map.kml.</li><li>اقرأ عدد Placemark وأزواج الإحداثيات المقبولة.</li><li>إذا ظهرت أزواج خارج النطاق أو أخطاء، راجع الملف الأصلي.</li><li>تحقق من ظهور البيانات فعليًا على الخريطة داخل برنامج متخصص.</li></ol><h2>الكود الكامل</h2><div class="tools"><button data-copy data-done="تم النسخ" data-manual="حدد الكود وانسخه يدويًا">نسخ الكود</button><a class="button" href="../downloads/kml_summary.py" download>تنزيل الكود</a></div><pre><code id="code">#!/usr/bin/env python3
+&quot;&quot;&quot;Count KML placemarks and report lon/lat extent of coordinates tags.&quot;&quot;&quot;
+import argparse
+import xml.etree.ElementTree as ET
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument(&#x27;file&#x27;, help=&#x27;KML file (not KMZ)&#x27;)
+args = p.parse_args()
+root = ET.parse(args.file).getroot()
+local = lambda tag: tag.rsplit(&#x27;}&#x27;, 1)[-1]
+placemarks = sum(local(e.tag) == &#x27;Placemark&#x27; for e in root.iter())
+points = []
+invalid = 0
+for element in root.iter():
+    if local(element.tag) != &#x27;coordinates&#x27; or not element.text:
+        continue
+    for part in element.text.split():
+        fields = part.split(&#x27;,&#x27;)
+        try:
+            lon, lat = float(fields[0]), float(fields[1])
+            if not (-180 &lt;= lon &lt;= 180 and -90 &lt;= lat &lt;= 90):
+                invalid += 1
+            else:
+                points.append((lon, lat))
+        except (ValueError, IndexError):
+            invalid += 1
+print(&#x27;Placemarks:&#x27;, placemarks)
+print(&#x27;Coordinate tuples in range:&#x27;, len(points))
+print(&#x27;Invalid/out-of-range tuples:&#x27;, invalid)
+if points:
+    print(&#x27;Longitude extent:&#x27;, min(x for x, _ in points), max(x for x, _ in points))
+    print(&#x27;Latitude extent:&#x27;, min(y for _, y in points), max(y for _, y in points))
+print(&#x27;Does not expand NetworkLinks, external resources or KMZ files.&#x27;)
+</code></pre><h2>مثال توضيحي</h2><p>ملف فيه 3 علامات أماكن ومسار من 5 رؤوس يمكن أن يعطي Placemarks: 4 مع عدد رؤوس أكبر من عدد علامات المكان.</p><h2>الحدود والتحقق</h2><p class="notice">لا يفتح NetworkLink أو المرفقات والموارد الخارجية، ولا يفك KMZ، ولا يحلل الإحداثيات الديناميكية. دلالة عدد Placemark تختلف عن عدد رؤوس المسارات. الامتداد محسوب فقط من وسوم coordinates المقروءة.</p><p><a href="https://www.ogc.org/standards/kml/" rel="noopener noreferrer" target="_blank">التوثيق أو المعيار المرجعي</a></p><p class="muted">الكود مفتوح المصدر، ويجب تجربة نسخة من الملفات قبل استخدامه في مشروع حقيقي.</p></article><div class="more"><a href="index.html">← جميع الأدوات</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · محتوى وأدوات مستقلة. غير تابع لـAutodesk أو QGIS. <a href="privacy.html">الخصوصية</a> <a href="contact.html">تواصل</a></div></footer></body></html>

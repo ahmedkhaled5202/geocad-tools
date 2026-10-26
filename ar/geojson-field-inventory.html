@@ -1,0 +1,45 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>حصر حقول خصائص GeoJSON والقيم الناقصة | GeoCAD Tools</title><meta name="description" content="اعرف أسماء الحقول ومدى اكتمال قيمها عبر المعالم دون أي تعديل.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/geojson-field-inventory.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/geojson-field-inventory.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/geojson-field-inventory.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/ar/geojson-field-inventory.html">
+<meta property="og:title" content="حصر حقول خصائص GeoJSON والقيم الناقصة">
+<meta property="og:description" content="اعرف أسماء الحقول ومدى اكتمال قيمها عبر المعالم دون أي تعديل.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">الرئيسية</a><a href="about.html">عن الموقع</a><a href="privacy.html">الخصوصية</a><a href="contact.html">تواصل</a><a class="langlink" href="../en/geojson-field-inventory.html" lang="en">English</a></div></nav></header><main class="container"><article class="paper"><span class="pill">GeoJSON</span><h1>حصر حقول خصائص GeoJSON والقيم الناقصة</h1><p class="lead">اعرف أسماء الحقول ومدى اكتمال قيمها عبر المعالم دون أي تعديل.</p><p>تختلف طبقات GeoJSON أحيانًا في حقولها حتى عندما تحمل النوع الهندسي نفسه. هذه الأداة تسرد أسماء الحقول، وعدد المعالم التي تحتوي كل حقل، وعدد القيم غير الفارغة null. يفيد التقرير عند تصميم الجداول أو الاتفاق على مخطط تسليم البيانات.</p><h2>طريقة الاستخدام</h2><ol><li>جهّز FeatureCollection بصيغة GeoJSON.</li><li>نفّذ python geojson_field_inventory.py parcels.geojson.</li><li>اقرأ الأعمدة Field وpresent وnon-null.</li><li>راجع الحقول الاختيارية والمفقودة قبل كتابة قواعد قاعدة البيانات.</li><li>النتيجة لا تعدّل أي قيمة ولا تخبرك إن كانت دلالات الحقول صحيحة.</li></ol><h2>الكود الكامل</h2><div class="tools"><button data-copy data-done="تم النسخ" data-manual="حدد الكود وانسخه يدويًا">نسخ الكود</button><a class="button" href="../downloads/geojson_field_inventory.py" download>تنزيل الكود</a></div><pre><code id="code">#!/usr/bin/env python3
+&quot;&quot;&quot;Summarize GeoJSON feature attribute keys and null coverage.&quot;&quot;&quot;
+import argparse
+import json
+from collections import Counter
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument(&#x27;file&#x27;, help=&#x27;GeoJSON FeatureCollection&#x27;)
+args = p.parse_args()
+with open(args.file, encoding=&#x27;utf-8-sig&#x27;) as f:
+    data = json.load(f)
+if not isinstance(data, dict) or data.get(&#x27;type&#x27;) != &#x27;FeatureCollection&#x27;:
+    p.error(&#x27;Expected a FeatureCollection object&#x27;)
+features = data.get(&#x27;features&#x27;)
+if not isinstance(features, list):
+    p.error(&#x27;Expected features array&#x27;)
+seen = Counter()
+not_null = Counter()
+for i, feat in enumerate(features, start=1):
+    if not isinstance(feat, dict) or feat.get(&#x27;type&#x27;) != &#x27;Feature&#x27;:
+        print(f&#x27;Warning: entry {i} is not a Feature&#x27;)
+        continue
+    props = feat.get(&#x27;properties&#x27;)
+    if props is None:
+        props = {}
+    if not isinstance(props, dict):
+        print(f&#x27;Warning: feature {i} has non-object properties&#x27;)
+        continue
+    for name, value in props.items():
+        seen[name] += 1
+        not_null[name] += value is not None
+print(&#x27;Feature entries:&#x27;, len(features))
+print(&#x27;Field | present | non-null&#x27;)
+for name in sorted(seen, key=str.casefold):
+    print(f&#x27;{name} | {seen[name]} | {not_null[name]}&#x27;)
+print(&#x27;No input files were changed.&#x27;)
+</code></pre><h2>مثال توضيحي</h2><p>إذا كان حقل parcel_id موجودًا في 10 معالم بينما 8 فقط غير فارغة، يظهر present=10 وnon-null=8.</p><h2>الحدود والتحقق</h2><p class="notice">لا يتحقق من نوع قيمة الحقل أو تنسيق الأرقام ولا يعتبر السلاسل النصية الفارغة مساوية لـnull. يعرض جميع المفاتيح كما جاءت، بما فيها الاختلاف في حالة الأحرف. يحتاج FeatureCollection، وقد يحتاج ملف كبير إلى ذاكرة كافية.</p><p><a href="https://www.rfc-editor.org/rfc/rfc7946" rel="noopener noreferrer" target="_blank">التوثيق أو المعيار المرجعي</a></p><p class="muted">الكود مفتوح المصدر، ويجب تجربة نسخة من الملفات قبل استخدامه في مشروع حقيقي.</p></article><div class="more"><a href="index.html">← جميع الأدوات</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · محتوى وأدوات مستقلة. غير تابع لـAutodesk أو QGIS. <a href="privacy.html">الخصوصية</a> <a href="contact.html">تواصل</a></div></footer></body></html>

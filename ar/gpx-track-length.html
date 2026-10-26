@@ -1,0 +1,54 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>احسب طول مسار GPX بطريقة تقريبية | GeoCAD Tools</title><meta name="description" content="احسب مسافة مسارات GPS من نقاط track دون حساب الانتقالات بين المقاطع.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/gpx-track-length.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/gpx-track-length.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/gpx-track-length.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/ar/gpx-track-length.html">
+<meta property="og:title" content="احسب طول مسار GPX بطريقة تقريبية">
+<meta property="og:description" content="احسب مسافة مسارات GPS من نقاط track دون حساب الانتقالات بين المقاطع.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">الرئيسية</a><a href="about.html">عن الموقع</a><a href="privacy.html">الخصوصية</a><a href="contact.html">تواصل</a><a class="langlink" href="../en/gpx-track-length.html" lang="en">English</a></div></nav></header><main class="container"><article class="paper"><span class="pill">GPS</span><h1>احسب طول مسار GPX بطريقة تقريبية</h1><p class="lead">احسب مسافة مسارات GPS من نقاط track دون حساب الانتقالات بين المقاطع.</p><p>تتبع GPS من ساعة أو جهاز ميداني قد يضم أكثر من مسار وأكثر من مقطع. تحسب الأداة المسافة الكروية التقريبية بين النقاط المتتالية داخل كل trkseg ولا تصل آخر نقطة في مقطع ببداية المقطع التالي. هذا يجعل الناتج مناسبًا للمراجعة السريعة، وليس للقياس المساحي الرسمي.</p><h2>طريقة الاستخدام</h2><ol><li>صدّر ملف GPX يحوي trk وtrkseg وtrkpt.</li><li>شغّل python gpx_distance.py walk.gpx.</li><li>راجع عدد المقاطع والنقاط والمسافة بالكيلومتر.</li><li>قارن المسافة بخريطة أو نظام يراعي إزالة ضوضاء GPS إذا احتجت دقة أعلى.</li><li>لا تعتمد عليه لحساب قياس حدود الملكيات أو أي قيمة تعاقدية.</li></ol><h2>الكود الكامل</h2><div class="tools"><button data-copy data-done="تم النسخ" data-manual="حدد الكود وانسخه يدويًا">نسخ الكود</button><a class="button" href="../downloads/gpx_distance.py" download>تنزيل الكود</a></div><pre><code id="code">#!/usr/bin/env python3
+&quot;&quot;&quot;Approximate GPX track length per segment using spherical haversine.&quot;&quot;&quot;
+import argparse
+import math
+import xml.etree.ElementTree as ET
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument(&#x27;file&#x27;, help=&#x27;GPX track file&#x27;)
+args = p.parse_args()
+root = ET.parse(args.file).getroot()
+local = lambda tag: tag.rsplit(&#x27;}&#x27;, 1)[-1]
+
+def distance(a, b):
+    lat1, lon1 = map(math.radians, a)
+    lat2, lon2 = map(math.radians, b)
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    h = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+    return 2*6371008.8*math.asin(min(1.0, math.sqrt(h)))
+
+segments, total_points, total_m = 0, 0, 0.0
+for segment in root.iter():
+    if local(segment.tag) != &#x27;trkseg&#x27;:
+        continue
+    segments += 1
+    previous = None
+    for pt in segment:
+        if local(pt.tag) != &#x27;trkpt&#x27;:
+            continue
+        try:
+            lat = float(pt.attrib[&#x27;lat&#x27;]); lon = float(pt.attrib[&#x27;lon&#x27;])
+            if not (math.isfinite(lat) and math.isfinite(lon) and -90 &lt;= lat &lt;= 90 and -180 &lt;= lon &lt;= 180):
+                raise ValueError(&#x27;Invalid coordinates&#x27;)
+        except (KeyError, ValueError) as e:
+            print(&#x27;Skipped invalid trackpoint:&#x27;, e)
+            previous = None
+            continue
+        here = lat, lon
+        total_points += 1
+        if previous is not None:
+            total_m += distance(previous, here)
+        previous = here
+print(&#x27;Track segments:&#x27;, segments)
+print(&#x27;Valid trackpoints:&#x27;, total_points)
+print(f&#x27;Approximate track length: {total_m/1000:.3f} km&#x27;)
+print(&#x27;Route points and waypoints excluded. Elevation, drift and breaks ignored.&#x27;)
+</code></pre><h2>مثال توضيحي</h2><p>مسار واحد من نقطتين متباعدتين تقريبًا 0.001 درجة على خط الاستواء قد يعطي مسافة نحو 0.111 كم.</p><h2>الحدود والتحقق</h2><p class="notice">يعتمد على معادلة Haversine ونصف قطر كروي متوسط؛ المسافة تقديرية وليست جيوديسية دقيقة. لا يدخل ارتفاعات أو تصحيح انجراف GPS أو نقاط routes/waypoints. يفصل المقاطع لكن قد تظل القفزات داخل المقطع الواحد موجودة.</p><p><a href="https://www.topografix.com/gpx/1/1/" rel="noopener noreferrer" target="_blank">التوثيق أو المعيار المرجعي</a></p><p class="muted">الكود مفتوح المصدر، ويجب تجربة نسخة من الملفات قبل استخدامه في مشروع حقيقي.</p></article><div class="more"><a href="index.html">← جميع الأدوات</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · محتوى وأدوات مستقلة. غير تابع لـAutodesk أو QGIS. <a href="privacy.html">الخصوصية</a> <a href="contact.html">تواصل</a></div></footer></body></html>

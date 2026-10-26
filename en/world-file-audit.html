@@ -1,0 +1,33 @@
+<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Read a raster world file and pixel steps | GeoCAD Tools</title><meta name="description" content="Inspect six affine coefficients, pixel steps and determinant without loading the raster.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaled5202.github.io/geocad-tools/en/world-file-audit.html">
+<link rel="alternate" hreflang="en" href="https://ahmedkhaled5202.github.io/geocad-tools/en/world-file-audit.html">
+<link rel="alternate" hreflang="ar" href="https://ahmedkhaled5202.github.io/geocad-tools/ar/world-file-audit.html">
+<meta property="og:url" content="https://ahmedkhaled5202.github.io/geocad-tools/en/world-file-audit.html">
+<meta property="og:title" content="Read a raster world file and pixel steps">
+<meta property="og:description" content="Inspect six affine coefficients, pixel steps and determinant without loading the raster.">
+<meta property="og:type" content="website"><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../assets/style.css"><script defer src="../assets/app.js"></script></head><body><header class="sitehead"><nav class="topnav container"><a class="brand" href="index.html">GeoCAD <span>Tools</span></a><div class="navlinks"><a href="index.html">Home</a><a href="about.html">About</a><a href="privacy.html">Privacy</a><a href="contact.html">Contact</a><a class="langlink" href="../ar/world-file-audit.html" lang="ar">العربية</a></div></nav></header><main class="container"><article class="paper"><span class="pill">Raster GIS</span><h1>Read a raster world file and pixel steps</h1><p class="lead">Inspect six affine coefficients, pixel steps and determinant without loading the raster.</p><p>A small TFW, JGW or PGW world file contains the affine mapping from raster row and column positions to map coordinates. The script reports pixel-center position, horizontal/vertical step vectors and the transform determinant.</p><h2>How to use</h2><ol><li>Locate the world file such as map.tfw next to its related image.</li><li>Run python world_file_audit.py map.tfw.</li><li>Compare the first pixel-center coordinate with an expected mapped location.</li><li>Inspect B/D components for rotation or skew.</li><li>Check projection and units in other metadata or GIS: world files do not contain a CRS.</li></ol><h2>Complete source code</h2><div class="tools"><button data-copy data-done="Copied" data-manual="Selected: copy manually">Copy code</button><a class="button" href="../downloads/world_file_audit.py" download>Download code</a></div><pre><code id="code">#!/usr/bin/env python3
+&quot;&quot;&quot;Read six-value raster world file without loading raster pixels.&quot;&quot;&quot;
+import argparse
+import math
+from pathlib import Path
+
+p = argparse.ArgumentParser(description=__doc__)
+p.add_argument(&#x27;file&#x27;, help=&#x27;World file e.g. image.tfw or image.jgw&#x27;)
+args = p.parse_args()
+lines = Path(args.file).read_text(encoding=&#x27;utf-8-sig&#x27;).splitlines()
+if len(lines) != 6:
+    p.error(&#x27;A world file must have exactly six numeric lines&#x27;)
+try:
+    A, D, B, E, C, F = [float(value.strip()) for value in lines]
+except ValueError:
+    p.error(&#x27;All six world-file values must be numbers&#x27;)
+if not all(math.isfinite(v) for v in (A,D,B,E,C,F)):
+    p.error(&#x27;Non-finite value found&#x27;)
+print(&#x27;Pixel center at column=0,row=0:&#x27;, C, F)
+print(&#x27;Horizontal pixel step (map units):&#x27;, A, D)
+print(&#x27;Vertical pixel step (map units):&#x27;, B, E)
+print(&#x27;Step magnitudes:&#x27;, math.hypot(A,D), math.hypot(B,E))
+print(&#x27;Determinant:&#x27;, A*E - B*D)
+print(&#x27;No CRS or physical units are stored in the world file.&#x27;)
+</code></pre><h2>Illustrative example</h2><p>With A=2, E=-2 and B=D=0, the reported pixel-step magnitude is two map units in each direction.</p><h2>Limitations and verification</h2><p class="notice">Does not read raster dimensions or infer CRS/units, and cannot prove the world file belongs to that image. A near-zero determinant indicates a degenerate transform; the report is not a full georeferencing quality check.</p><p><a href="https://desktop.arcgis.com/en/arcmap/latest/manage-data/raster-and-images/world-files-for-raster-datasets.htm" rel="noopener noreferrer" target="_blank">Reference specification or documentation</a></p><p class="muted">Open-source example: always test with a copy before real-world use.</p></article><div class="more"><a href="index.html">← All tools</a></div></main><footer class="pagefooter"><div class="container">GeoCAD Tools · Independent guides and tools. Not affiliated with Autodesk or QGIS. <a href="privacy.html">Privacy</a> <a href="contact.html">Contact</a></div></footer></body></html>
