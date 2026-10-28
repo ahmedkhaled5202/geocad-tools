@@ -1,0 +1,33 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Point A",
+        "floors": 3
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          31.0,
+          30.0
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Point B",
+        "floors": 2
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          31.01,
+          30.01
+        ]
+      }
+    }
+  ]
+}
